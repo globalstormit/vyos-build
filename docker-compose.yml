@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   vyos-build:
     image: vyos/vyos-build:${VERSION}

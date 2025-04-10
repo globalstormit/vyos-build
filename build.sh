@@ -1,9 +1,10 @@
 #!/bin/bash
 # https://docs.vyos.io/en/latest/contributing/build-vyos.html#build
 
-# Set sudo timeout to unlimited (until reboot)
-echo "Setting sudo timeout to unlimited for build process..."
-sudo sh -c 'echo "Defaults timestamp_timeout=0" > /etc/sudoers.d/vyos-build-extend-timeout'
+# Set sudo timeout to 4 hours (14400 seconds)
+echo "Setting sudo timeout to 4 hours for build process..."
+sudo sh -c 'echo "Defaults timestamp_timeout=14400" > /etc/sudoers.d/vyos-build-extend-timeout'
+sudo docker compose down
 
 source ./.env
 
@@ -12,8 +13,6 @@ VERSION=$(git symbolic-ref --short HEAD)
 echo "Detected branch: $VERSION"
 
 git clean -fd
-# No need to checkout as we're already on the correct branch
-# git checkout $VERSION
 
 # Check if Docker image already exists
 if ! sudo docker image inspect vyos/vyos-build:$VERSION &>/dev/null; then
@@ -26,29 +25,13 @@ fi
 # Create directory for local packages
 mkdir -p ./local-packages
 
-# Run container to build kernel and drivers
+# Build kernel and drivers using dedicated script
 echo "Building kernel and drivers..."
-sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "
-    cd /vyos/packages/linux-kernel
-    ./build-kernel.sh
-    # Build the Intel drivers
-    ./build-intel-ixgbe.sh
-    ./build-intel-ixgbevf.sh
-    ./build-intel-qat.sh
-    ./build-linux-firmware.sh
-    # Move all built packages to local-packages directory
-    mv *.deb /vyos/local-packages/ 2>/dev/null || true
-"
+sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "/vyos/scripts/build-kernel-drivers.sh"
 
-# Create a local apt repository
+# Create local repository using dedicated script
 echo "Creating local package repository..."
-sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "
-    cd /vyos/local-packages
-    apt-get update
-    apt-get install -y dpkg-dev
-    dpkg-scanpackages . > Packages
-    gzip -k Packages
-"
+sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "/vyos/scripts/create-local-repo.sh"
 
 # Now run the build with the local repository
 sudo docker compose up
