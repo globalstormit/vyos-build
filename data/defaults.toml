@@ -9,7 +9,11 @@ debian_security_mirror = "http://deb.debian.org/debian-security"
 
 debian_archive_areas = "main contrib non-free"
 
-vyos_mirror = "http://dev.packages.vyos.net/repositories/sagitta"
+# Original URL fails with 403 Forbidden:
+# vyos_mirror = "http://dev.packages.vyos.net/repositories/sagitta"
+
+# Now using local repository for VyOS-specific packages
+vyos_mirror = "file:///vyos/local-packages"
 
 vyos_branch = "sagitta"
 release_train = "sagitta"
