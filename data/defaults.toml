@@ -13,7 +13,8 @@ debian_archive_areas = "main contrib non-free"
 # vyos_mirror = "http://dev.packages.vyos.net/repositories/sagitta"
 
 # Now using local repository for VyOS-specific packages
-vyos_mirror = "file:///vyos/local-packages"
+# This path will be interpolated with the actual version at build time
+vyos_mirror = "file:///vyos/local-repo/{{ version }}"
 
 vyos_branch = "sagitta"
 release_train = "sagitta"

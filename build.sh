@@ -22,15 +22,15 @@ else
     echo "Using existing Docker container for VyOS $VERSION"
 fi
 
-# Create directory for local packages
-mkdir -p ./local-packages
+# Create directory for local repository
+mkdir -p ./local-repo
 
 # Build kernel and drivers using dedicated script
 echo "Building kernel and drivers..."
 chmod +x ./scripts/build-kernel-drivers.sh
 chmod +x ./scripts/create-local-repo.sh
 sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "/vyos/scripts/build-kernel-drivers.sh"
-# sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "ls -la /vyos/scripts"
+
 # Create local repository using dedicated script
 echo "Creating local package repository..."
 sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "/vyos/scripts/create-local-repo.sh"
