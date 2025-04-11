@@ -5,6 +5,9 @@ packer_cache/*
 key/*
 packages/*
 !packages/*/
+local-packages/*
 testinstall*.img
 *.qcow2
 *.tar
+*.iso
+build.log

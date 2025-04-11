@@ -9,8 +9,8 @@ sudo docker compose down
 source ./.env
 
 # Derive VERSION from current git branch
-VERSION=$(git symbolic-ref --short HEAD)
-echo "Detected branch: $VERSION"
+# VERSION=$(git symbolic-ref --short HEAD)
+# echo "Detected branch: $VERSION"
 
 git clean -fd
 
@@ -27,8 +27,10 @@ mkdir -p ./local-packages
 
 # Build kernel and drivers using dedicated script
 echo "Building kernel and drivers..."
+chmod +x ./scripts/build-kernel-drivers.sh
+chmod +x ./scripts/create-local-repo.sh
 sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "/vyos/scripts/build-kernel-drivers.sh"
-
+# sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "ls -la /vyos/scripts"
 # Create local repository using dedicated script
 echo "Creating local package repository..."
 sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "/vyos/scripts/create-local-repo.sh"
