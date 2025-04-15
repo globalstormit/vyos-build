@@ -1,0 +1,12 @@
+services:
+  vyos-build:
+    image: vyos/vyos-build:${VERSION}
+    build:
+      context: ./docker
+    privileged: true
+    volumes:
+      - .:/vyos
+    working_dir: /vyos
+    env_file:
+      - .env
+    command: bash -c "sudo make clean && sudo ./build-vyos-image --architecture ${ARCH} --build-by '${EMAIL}' --build-type ${BUILD_TYPE} ${BUILD_FLAVOR}"

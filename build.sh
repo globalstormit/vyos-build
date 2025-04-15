@@ -19,13 +19,7 @@ else
 fi
 
 # Run all steps in the same container session to avoid repository issues
-sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos \
-    -e ARCH=$ARCH -e EMAIL="$EMAIL" -e BUILD_TYPE=$BUILD_TYPE -e BUILD_FLAVOR=$BUILD_FLAVOR -e VERSION=$VERSION \
-    vyos/vyos-build:$VERSION bash -c "
-        cd /vyos;
-        sudo make clean;
-        sudo ./build-vyos-image --architecture $ARCH --build-by '$EMAIL' --build-type $BUILD_TYPE $BUILD_FLAVOR;
-    "
+sudo docker compose up
+sudo docker compose down --remove-orphans
 
-# Clean up the temporary sudoers file
 sudo rm -f /etc/sudoers.d/vyos-build-extend-timeout
