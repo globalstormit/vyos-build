@@ -22,11 +22,13 @@ fi
 echo "Removing old repo data..."
 sudo rm -rf local-repo
 sudo rm -rf build/config/archives/vyos.list.chroot
+sudo rm -rf build/config/hooks/normal/01-setup-local-repo.chroot
 
 # Build kernel and drivers directly in container
 echo "Building VyOS image with integrated build process..."
 chmod +x ./scripts/build-kernel-drivers.sh
 chmod +x ./scripts/create-local-repo.sh
+chmod +x ./scripts/fix-repo-paths.sh
 
 # Run all steps in the same container session to avoid repository issues
 sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos \
@@ -37,6 +39,9 @@ sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos \
         
         echo '=== Creating local package repository ===';
         cd /vyos && ./scripts/create-local-repo.sh;
+        
+        echo '=== Fixing repository paths for build environment ===';
+        cd /vyos && ./scripts/fix-repo-paths.sh;
         
         echo '=== Building VyOS image ===';
         cd /vyos;
