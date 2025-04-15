@@ -1,0 +1,6 @@
+#!/bin/bash
+echo 'Setting up access to local repository...'
+mkdir -p chroot/vyos
+mkdir -p chroot/vyos/local-repo
+mount -o bind /vyos/local-repo chroot/vyos/local-repo
+echo 'Local repository mounted to chroot environment at /vyos/local-repo'

@@ -2,6 +2,7 @@
 set -e
 
 echo "Creating local package repository..."
+echo "DEBUG: Current directory: $(pwd)"
 
 # Get host UID/GID for ownership fix later
 HOST_UID=$(stat -c "%u" /vyos)
@@ -29,21 +30,29 @@ echo "Creating repo for ARCH: $ARCH, DIST: $DIST"
 # Paths
 PKG_DIR="/vyos/packages"
 REPO_BASE="/vyos/local-repo"
+POOL_DIR="$REPO_BASE/pool/main"
 REPO_PATH="$REPO_BASE/dists/$DIST/main/binary-$ARCH"
 
 # Clean repo and recreate layout
 echo "Cleaning old repo..."
 sudo rm -rf "$REPO_BASE"
+sudo mkdir -p "$POOL_DIR"
 sudo mkdir -p "$REPO_PATH"
 
-# Copy packages
-echo "Collecting .deb packages..."
-sudo find "$PKG_DIR" -name "*.deb" -exec cp -v {} "$REPO_PATH" \;
+# Copy packages to pool directory first
+echo "Collecting .deb packages to pool..."
+sudo find "$PKG_DIR" -name "*.deb" -exec cp -v {} "$POOL_DIR" \;
 
-# Generate Packages.gz
-echo "Generating Packages.gz..."
+# Create a symlink from the repo path to the pool directory
+echo "Creating symlink from $REPO_PATH to $POOL_DIR"
 cd "$REPO_PATH"
-sudo dpkg-scanpackages . /dev/null | gzip -9c | sudo tee Packages.gz > /dev/null
+sudo ln -sf $POOL_DIR/* .
+
+# Generate Packages and Packages.gz files
+echo "Generating Packages files..."
+cd "$REPO_PATH"
+sudo dpkg-scanpackages -m . > Packages
+sudo gzip -9c Packages > Packages.gz
 
 # Generate proper Release file
 echo "Generating Release file..."
@@ -62,11 +71,11 @@ APT::FTPArchive::Release {
 };
 EOF
 
-# Generate Release with Codename included
+# Generate Release file with correct Codename
 sudo apt-ftparchive -c "$TMP_CONF" release . | sudo tee Release > /dev/null
 
-# Clean up the temp config file
-rm "$TMP_CONF"
+echo "DEBUG: Repository structure:"
+sudo find "$REPO_BASE" -type f | sort
 
 # Fix ownership (important if inside a container)
 echo "Fixing permissions..."
@@ -74,25 +83,24 @@ sudo chown -R "$HOST_UID:$HOST_GID" "$REPO_BASE"
 
 # Add repo to APT
 echo "Adding to APT sources..."
-echo "deb [trusted=yes allow-insecure=yes allow-downgrade-to-insecure=yes] file:$REPO_BASE $DIST main" | sudo tee /etc/apt/sources.list.d/local-vyos.list
+echo "deb [trusted=yes] file:$REPO_BASE $DIST main" | sudo tee /etc/apt/sources.list.d/local-vyos.list
+
+# Create a clean reference for the live-build chroot
 mkdir -p /vyos/data/live-build-config/includes.chroot/etc/apt/sources.list.d/
-cat <<EOF > /vyos/data/live-build-config/includes.chroot/etc/apt/sources.list.d/local-vyos.list
-deb [trusted=yes allow-insecure=yes allow-downgrade-to-insecure=yes] file:/vyos/local-repo sagitta main
-EOF
+echo "deb [trusted=yes] file:$REPO_BASE $DIST main" | sudo tee /vyos/data/live-build-config/includes.chroot/etc/apt/sources.list.d/local-vyos.list
 
-echo FFFFFFFFFFUUUUUUUUUUUUUU
-echo FFFFFFFFFFUUUUUUUUUUUUUU
-echo FFFFFFFFFFUUUUUUUUUUUUUU
+# Update APT index to verify the repository works
+echo "Running apt-get update to verify repository..."
+sudo apt-get update -o Acquire::AllowInsecureRepositories=true
+
+# Now let's make ABSOLUTELY SURE everything is ready for the build process
+echo "DEBUG: Repository information:"
+echo "Repository base: $REPO_BASE"
+echo "Repository path: $REPO_PATH"
+ls -la "$REPO_BASE/dists/$DIST/"
+echo "Release file contents:"
+cat "$REPO_BASE/dists/$DIST/Release"
+echo "APT sources list:"
 cat /etc/apt/sources.list.d/local-vyos.list
-echo FFFFFFFFFFUUUUUUUUUUUUUU
-echo FFFFFFFFFFUUUUUUUUUUUUUU
-echo FFFFFFFFFFUUUUUUUUUUUUUU
-# echo "deb [trusted=yes] file:/vyos/local-repo sagitta main" | sudo tee /etc/apt/sources.list.d/local-vyos.list
 
-# Update APT index
-echo "Running apt-get update..."
-sudo apt-get update
-
-mkdir -p /vyos/data/live-build-config/includes.chroot/vyos/local-repo
-sudo mount -o bind /vyos/local-repo /vyos/data/live-build-config/includes.chroot/vyos/local-repo
 echo "Local repo ready to go!"
