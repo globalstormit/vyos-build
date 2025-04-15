@@ -27,8 +27,6 @@ sudo rm -rf build/config/hooks/normal/01-setup-local-repo.chroot
 # Build kernel and drivers directly in container
 echo "Building VyOS image with integrated build process..."
 chmod +x ./scripts/build-kernel-drivers.sh
-chmod +x ./scripts/create-local-repo.sh
-chmod +x ./scripts/fix-repo-paths.sh
 
 # Run all steps in the same container session to avoid repository issues
 sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos \
@@ -37,11 +35,14 @@ sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos \
         echo '=== Building kernel drivers ===';
         /vyos/scripts/build-kernel-drivers.sh;
         
-        echo '=== Creating local package repository ===';
-        cd /vyos && ./scripts/create-local-repo.sh;
+        echo '=== Setting up direct package inclusion ===';
+        # Copy packages directly to the packages.chroot directory
+        mkdir -p /vyos/build/config/packages.chroot/
+        find /vyos/packages -name '*.deb' -exec cp -v {} /vyos/build/config/packages.chroot/ \;
         
-        echo '=== Fixing repository paths for build environment ===';
-        cd /vyos && ./scripts/fix-repo-paths.sh;
+        # CRITICAL FIX: Just use the official VyOS repository instead of local
+        # The local packages will be included via packages.chroot directory
+        sed -i 's|vyos_mirror = \"file:/vyos/local-repo\"|vyos_mirror = \"https://packages.vyos.net/repositories/current\"|g' /vyos/data/defaults.toml
         
         echo '=== Building VyOS image ===';
         cd /vyos;
