@@ -8,10 +8,6 @@ sudo docker compose down
 
 source ./.env
 
-# Derive VERSION from current git branch
-# VERSION=$(git symbolic-ref --short HEAD)
-# echo "Detected branch: $VERSION"
-
 git clean -fd
 
 # Check if Docker image already exists
@@ -39,25 +35,8 @@ sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos \
         echo '=== Building kernel drivers ===';
         /vyos/scripts/build-kernel-drivers.sh;
         
-        echo '=== Creating local package repository with DEBUG output ===';
+        echo '=== Creating local package repository ===';
         cd /vyos && ./scripts/create-local-repo.sh;
-        
-        # Create copies of the repo in build dir
-        echo '=== Ensuring repository is accessible during build ===';
-        mkdir -p /vyos/build/config/archives/
-        echo 'deb [trusted=yes] file:/vyos/local-repo sagitta main' > /vyos/build/config/archives/vyos.list.chroot
-        
-        # Create prebuild hooks
-        mkdir -p /vyos/data/live-build-config/hooks/live/
-        cat > /vyos/data/live-build-config/hooks/live/01-setup-local-repo.hook << 'EOF'
-#!/bin/bash
-echo 'Setting up access to local repository...'
-mkdir -p chroot/vyos
-mkdir -p chroot/vyos/local-repo
-mount -o bind /vyos/local-repo chroot/vyos/local-repo
-echo 'Local repository mounted to chroot environment at /vyos/local-repo'
-EOF
-        chmod +x /vyos/data/live-build-config/hooks/live/01-setup-local-repo.hook
         
         echo '=== Building VyOS image ===';
         cd /vyos;
