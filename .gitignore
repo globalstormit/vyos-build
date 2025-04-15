@@ -11,3 +11,6 @@ packages/*
 /testinstall*.efivars
 /*.qcow2
 /*.tar
+*.iso
+build.log
+/local-repo/
