@@ -1,0 +1,1 @@
+deb [trusted=yes allow-insecure=yes allow-downgrade-to-insecure=yes] file:/vyos/local-repo sagitta main
