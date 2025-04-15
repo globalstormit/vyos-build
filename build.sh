@@ -22,20 +22,26 @@ else
     echo "Using existing Docker container for VyOS $VERSION"
 fi
 
-# Create local repository using dedicated script
-echo "Creating local package repository..."
-chmod +x ./scripts/create-local-repo.sh
-sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "/vyos/scripts/create-local-repo.sh"
-
-# Build kernel and drivers using dedicated script
-echo "Building kernel and drivers..."
+# Build kernel and drivers directly in container
+echo "Building VyOS image with integrated build process..."
 chmod +x ./scripts/build-kernel-drivers.sh
-sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:$VERSION bash -c "/vyos/scripts/build-kernel-drivers.sh"
+chmod +x ./scripts/create-local-repo.sh
 
-
-
-# Now run the build with the local repository
-sudo docker compose up
+# Run all steps in the same container session to avoid repository issues
+sudo docker run --rm --privileged -v $(pwd):/vyos -w /vyos \
+    -e ARCH=$ARCH -e EMAIL="$EMAIL" -e BUILD_TYPE=$BUILD_TYPE -e BUILD_FLAVOR=$BUILD_FLAVOR -e VERSION=$VERSION \
+    vyos/vyos-build:$VERSION bash -c "
+        echo '=== Building kernel drivers ===';
+        /vyos/scripts/build-kernel-drivers.sh;
+        
+        echo '=== Creating local package repository ===';
+        /vyos/scripts/create-local-repo.sh;
+        
+        echo '=== Building VyOS image ===';
+        cd /vyos;
+        sudo make clean;
+        sudo ./build-vyos-image --architecture $ARCH --build-by '$EMAIL' --build-type $BUILD_TYPE $BUILD_FLAVOR;
+    "
 
 # Clean up the temporary sudoers file
 sudo rm -f /etc/sudoers.d/vyos-build-extend-timeout

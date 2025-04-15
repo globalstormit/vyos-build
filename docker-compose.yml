@@ -9,4 +9,4 @@ services:
     working_dir: /vyos
     env_file:
       - .env
-    command: bash -c "sudo make clean && sudo ./build-vyos-image --architecture ${ARCH} --build-by '${EMAIL}' --build-type ${BUILD_TYPE} ${BUILD_FLAVOR}"
+    command: bash -c "sudo /vyos/scripts/build-kernel-drivers.sh && cd /vyos && mkdir -p /vyos/packages && cp -f /vyos/packages/linux-kernel/*.deb /vyos/packages/ && sudo make clean && sudo ./build-vyos-image --architecture ${ARCH} --build-by '${EMAIL}' --build-type ${BUILD_TYPE} ${BUILD_FLAVOR}"

@@ -357,7 +357,9 @@ RUN apt-get update && apt-get install -y \
 # Packages needed for local repository management
 RUN apt-get update && apt-get install -y \
       reprepro \
-      dpkg-dev
+      dpkg-dev \
+      lz4 \
+      zstd
 
 # Allow password-less 'sudo' for all users in group 'sudo'
 RUN sed "s/^%sudo.*/%sudo\tALL=(ALL) NOPASSWD:ALL/g" -i /etc/sudoers && \

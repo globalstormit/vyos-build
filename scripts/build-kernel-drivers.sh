@@ -139,3 +139,5 @@ ls -la /vyos/local-repo/pool/main/*.deb 2>/dev/null || echo "No packages found"
 echo "==============================================="
 
 echo "Kernel and drivers built successfully!"
+
+cd /vyos
