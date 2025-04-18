@@ -24,4 +24,13 @@ We will generate configuration from a template. Will require vars:
   - LAN interface DHCP start
   - LAN interface DHCP end
   - SSH port
-    
+
+
+** How do do this?
+
+The install script is part of the vyos-1x package:
+https://github.com/vyos/vyos-1x/blob/current/src/op_mode/image_installer.py
+
+Its path in the VyOS system is:
+/usr/libexec/vyos/op_mode/image_installer.py
+
