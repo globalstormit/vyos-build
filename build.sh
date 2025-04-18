@@ -23,3 +23,5 @@ sudo docker compose up
 sudo docker compose down --remove-orphans
 
 sudo rm -f /etc/sudoers.d/vyos-build-extend-timeout
+mv build/vyos*.iso ../share
+sudo chown luke:luke ../share/vyos*.iso
