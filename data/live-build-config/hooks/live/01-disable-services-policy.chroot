@@ -1,0 +1,24 @@
+#!/bin/bash
+# Hook to prevent service startup during package installation
+# This fixes the "All runlevel operations denied by policy" error
+
+set -e
+
+echo "I: Configuring policy-rc.d to prevent service startup during build"
+
+# Create a policy file that will prevent service startup
+cat > /usr/sbin/policy-rc.d << 'EOF'
+#!/bin/sh
+# policy-rc.d script to prevent services from starting during installation
+# Return code meanings:
+# 0 = allow service startup
+# 101 = do not allow service startup
+
+echo "I: policy-rc.d: Denying service startup request for $1"
+exit 101
+EOF
+
+# Make it executable
+chmod +x /usr/sbin/policy-rc.d
+
+echo "I: Configured policy-rc.d successfully"
