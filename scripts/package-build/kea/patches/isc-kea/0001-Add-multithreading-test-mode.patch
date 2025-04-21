@@ -1,0 +1,135 @@
+From cb2b064162e2d5bf09331c619abf76a40130ade1 Mon Sep 17 00:00:00 2001
+From: sarthurdev <s.arthur@vyos.io>
+Date: Wed, 2 Apr 2025 08:48:48 +0000
+Subject: [PATCH 1/2] Add multithreading test mode
+
+---
+ src/bin/dhcp4/json_config_parser.cc |  4 ++++
+ src/bin/dhcp6/json_config_parser.cc |  6 +++++-
+ src/lib/config/cmd_http_listener.cc |  3 +++
+ src/lib/tcp/mt_tcp_listener_mgr.cc  |  3 +++
+ src/lib/util/multi_threading_mgr.cc |  3 ++-
+ src/lib/util/multi_threading_mgr.h  | 19 +++++++++++++++++++
+ 6 files changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/src/bin/dhcp4/json_config_parser.cc b/src/bin/dhcp4/json_config_parser.cc
+index c2e34c5..1350816 100644
+--- a/src/bin/dhcp4/json_config_parser.cc
++++ b/src/bin/dhcp4/json_config_parser.cc
+@@ -718,6 +718,10 @@ configureDhcp4Server(Dhcpv4Srv& server, isc::data::ConstElementPtr config_set,
+     LOG_DEBUG(dhcp4_logger, DBG_DHCP4_COMMAND, DHCP4_CONFIG_START)
+         .arg(server.redactConfig(config_set)->str());
+ 
++    if (check_only) {
++        MultiThreadingMgr::instance().setTestMode(true);
++    }
++
+     auto answer = processDhcp4Config(config_set);
+ 
+     int status_code = CONTROL_RESULT_SUCCESS;
+diff --git a/src/bin/dhcp6/json_config_parser.cc b/src/bin/dhcp6/json_config_parser.cc
+index 671d69a..a74a568 100644
+--- a/src/bin/dhcp6/json_config_parser.cc
++++ b/src/bin/dhcp6/json_config_parser.cc
+@@ -850,6 +850,10 @@ configureDhcp6Server(Dhcpv6Srv& server, isc::data::ConstElementPtr config_set,
+     LOG_DEBUG(dhcp6_logger, DBG_DHCP6_COMMAND, DHCP6_CONFIG_START)
+         .arg(server.redactConfig(config_set)->str());
+ 
++    if (check_only) {
++        MultiThreadingMgr::instance().setTestMode(true);
++    }
++
+     auto answer = processDhcp6Config(config_set);
+ 
+     int status_code = CONTROL_RESULT_SUCCESS;
+@@ -953,7 +957,7 @@ configureDhcp6Server(Dhcpv6Srv& server, isc::data::ConstElementPtr config_set,
+     // configuration. This will add created subnets and option values into
+     // the server's configuration.
+     // This operation should be exception safe but let's make sure.
+-    if (status_code == CONTROL_RESULT_SUCCESS && (!check_only || extra_checks)) {
++    if (status_code == CONTROL_RESULT_SUCCESS && !check_only) {
+         try {
+ 
+             // Setup the command channel.
+diff --git a/src/lib/config/cmd_http_listener.cc b/src/lib/config/cmd_http_listener.cc
+index 9dfea59..394806e 100644
+--- a/src/lib/config/cmd_http_listener.cc
++++ b/src/lib/config/cmd_http_listener.cc
+@@ -40,6 +40,9 @@ CmdHttpListener::~CmdHttpListener() {
+ 
+ void
+ CmdHttpListener::start() {
++    if (MultiThreadingMgr::instance().isTestMode()) {
++        return;
++    }
+     // We must be in multi-threading mode.
+     if (!MultiThreadingMgr::instance().getMode()) {
+         isc_throw(InvalidOperation, "CmdHttpListener cannot be started"
+diff --git a/src/lib/tcp/mt_tcp_listener_mgr.cc b/src/lib/tcp/mt_tcp_listener_mgr.cc
+index e880284..4680717 100644
+--- a/src/lib/tcp/mt_tcp_listener_mgr.cc
++++ b/src/lib/tcp/mt_tcp_listener_mgr.cc
+@@ -40,6 +40,9 @@ MtTcpListenerMgr::~MtTcpListenerMgr() {
+ 
+ void
+ MtTcpListenerMgr::start() {
++    if (MultiThreadingMgr::instance().isTestMode()) {
++        return;
++    }
+     // We must be in multi-threading mode.
+     if (!MultiThreadingMgr::instance().getMode()) {
+         isc_throw(InvalidOperation, "MtTcpListenerMgr cannot be started"
+diff --git a/src/lib/util/multi_threading_mgr.cc b/src/lib/util/multi_threading_mgr.cc
+index d1526b9..cab284d 100644
+--- a/src/lib/util/multi_threading_mgr.cc
++++ b/src/lib/util/multi_threading_mgr.cc
+@@ -14,7 +14,8 @@ namespace isc {
+ namespace util {
+ 
+ MultiThreadingMgr::MultiThreadingMgr()
+-    : enabled_(false), critical_section_count_(0), thread_pool_size_(0) {
++    : enabled_(false), test_mode_(false), critical_section_count_(0),
++      thread_pool_size_(0) {
+ }
+ 
+ MultiThreadingMgr::~MultiThreadingMgr() {
+diff --git a/src/lib/util/multi_threading_mgr.h b/src/lib/util/multi_threading_mgr.h
+index e86c488..f3da67b 100644
+--- a/src/lib/util/multi_threading_mgr.h
++++ b/src/lib/util/multi_threading_mgr.h
+@@ -154,6 +154,22 @@ public:
+     /// @param enabled The new mode.
+     void setMode(bool enabled);
+ 
++    /// @brief Sets or clears the test mode for @c MultiThreadingMgr.
++    ///
++    /// @param test_mode A flag which indicates that the @c MultiThreadingMgr is
++    /// in the test mode (if true), or not (if false).
++    void setTestMode(const bool test_mode) {
++        test_mode_ = test_mode;
++    }
++
++    /// @brief Checks if the @c MultiThreadingMgr is in the test mode.
++    ///
++    /// @return true if the @c MultiThreadingMgr is in the test mode, false
++    /// otherwise.
++    bool isTestMode() const {
++        return (test_mode_);
++    }
++
+     /// @brief Enter critical section.
+     ///
+     /// When entering @ref MultiThreadingCriticalSection, increment internal
+@@ -308,6 +324,9 @@ private:
+     /// otherwise.
+     bool enabled_;
+ 
++    /// @brief Indicates if the @c MultiThreadingMgr is in the test mode.
++    bool test_mode_;
++
+     /// @brief The critical section count.
+     ///
+     /// In case the configuration is applied within a
+-- 
+2.39.5
+

@@ -31,6 +31,8 @@ jobs:
               - 'scripts/package-build/aws-gwlbtun/**'
             blackbox_exporter:
               - 'scripts/package-build/blackbox_exporter/**'
+            bash-completion:
+              - 'scripts/package-build/bash-completion/**'
             ddclient:
               - 'scripts/package-build/ddclient/**'
             dropbear:
@@ -51,6 +53,8 @@ jobs:
               - 'scripts/package-build/kea/**'
             keepalived:
               - 'scripts/package-build/keepalived/**'
+            libnss-mapuser:
+              - 'scripts/package-build/libnss-mapuser/**'
             libpam-radius-auth:
               - 'scripts/package-build/libpam-radius-auth/**'
             linux-kernel:
@@ -121,6 +125,10 @@ jobs:
             trigger_build "aws-gwlbtun"
           fi
 
+          if [ "${{ steps.changes.outputs.bash-completion }}" == "true" ]; then
+            trigger_build "bash-completion"
+          fi
+
           if [ "${{ steps.changes.outputs.ddclient }}" == "true" ]; then
             trigger_build "ddclient"
           fi
@@ -159,6 +167,10 @@ jobs:
 
           if [ "${{ steps.changes.outputs.keepalived }}" == "true" ]; then
             trigger_build "keepalived"
+          fi
+
+          if [ "${{ steps.changes.outputs.libnss-mapuser }}" == "true" ]; then
+            trigger_build "libnss-mapuser"
           fi
 
           if [ "${{ steps.changes.outputs.libpam-radius-auth }}" == "true" ]; then

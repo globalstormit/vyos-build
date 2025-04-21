@@ -25,7 +25,7 @@ DRIVER_VERSION=$(git describe | sed s/^v//)
 
 # Build up Debian related variables required for packaging
 DEBIAN_ARCH=$(dpkg --print-architecture)
-DEBIAN_DIR="tmp/lib/modules/${KERNEL_VERSION}${KERNEL_SUFFIX}/extra"
+DEBIAN_DIR="tmp/"
 DEBIAN_CONTROL="${DEBIAN_DIR}/DEBIAN/control"
 DEBIAN_POSTINST="${CWD}/vyos-ipt-netflow.postinst"
 
@@ -47,6 +47,8 @@ fi
 # build Debian package
 echo "I: Building Debian package vyos-ipt-netflow"
 cp ipt_NETFLOW.ko ${DEBIAN_DIR}
+cp libipt_NETFLOW.so ${DEBIAN_DIR}
+cp libip6t_NETFLOW.so ${DEBIAN_DIR}
 
 # Sign generated Kernel modules
 ${CWD}/sign-modules.sh ${DEBIAN_DIR}
@@ -61,5 +63,7 @@ fpm --input-type dir --output-type deb --name vyos-ipt-netflow \
     --maintainer "VyOS Package Maintainers <maintainers@vyos.net>" \
     --description "ipt_NETFLOW module" \
     --depends linux-image-${KERNEL_VERSION}${KERNEL_SUFFIX} \
-    --license "GPL2" -C ${IPT_NETFLOW_SRC}/tmp --after-install ${DEBIAN_POSTINST}
-
+    --license "GPL2" -C ${IPT_NETFLOW_SRC}/tmp --after-install ${DEBIAN_POSTINST} \
+    ipt_NETFLOW.ko=/lib/modules/${KERNEL_VERSION}${KERNEL_SUFFIX}/extra/ipt_NETFLOW.ko \
+    libipt_NETFLOW.so=/lib/$(uname -m)-linux-gnu/xtables/libipt_NETFLOW.so \
+    libip6t_NETFLOW.so=/lib/$(uname -m)-linux-gnu/xtables/libip6t_NETFLOW.so

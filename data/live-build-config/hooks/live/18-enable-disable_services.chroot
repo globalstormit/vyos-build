@@ -41,7 +41,6 @@ systemctl disable snmpd.service
 systemctl disable conserver-server.service
 systemctl disable dropbear.service
 systemctl disable fancontrol.service
-systemctl disable fastnetmon.service
 systemctl disable ddclient.service
 systemctl disable ocserv.service
 systemctl disable tuned.service
@@ -72,6 +71,8 @@ systemctl disable suricata.service
 systemctl disable vyconfd.service
 systemctl disable vpp.service
 systemctl disable vyos-commitd.service
+systemctl disable netplug.service
+
 
 echo I: Enabling services
 systemctl enable vyos-hostsd.service
